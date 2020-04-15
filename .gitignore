@@ -1,0 +1,7 @@
+README.html
+build/
+dist/
+.mypy_cache/
+*.egg-info/
+*.pyc
+__pycache__/

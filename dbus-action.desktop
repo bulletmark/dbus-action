@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+NoDisplay=true
+Terminal=false
+Name=D-Bus Actioner
+Comment=Listen to D-Bus messages to action configured commands
+Exec=/usr/bin/dbus-action
+Icon=dbus-action
+Categories=GNOME;GTK;System;

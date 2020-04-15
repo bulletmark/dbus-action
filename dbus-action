@@ -1,0 +1,179 @@
+#!/usr/bin/python3
+'Watch D-Bus to action configured commands on specific events.'
+import os
+import sys
+import argparse
+import subprocess
+from functools import partial
+from collections import defaultdict
+from pathlib import Path
+
+import dbus
+from dbus.mainloop.glib import DBusGMainLoop
+from gi.repository import GLib
+from ruamel.yaml import YAML
+
+busses = {'session': None, 'system': None}
+busdbus = [dbus.SessionBus, dbus.SystemBus]
+busfuncs = {k: f for k, f in zip(busses, busdbus)}
+busnames = ','.join(busses)
+
+# Set up command line arguments
+opt = argparse.ArgumentParser(description=__doc__)
+opt.add_argument('-c', '--conffile',
+        help='alternative configuration file')
+opt.add_argument('-v', '--verbose', action='store_true',
+        help='verbose output')
+opt.add_argument('-m', '--monitor',
+        help=f'just monitor given bus, or "all" busses ({busnames})')
+opt.add_argument('-i', '--interface',
+        help=f'limit monitor output to specific interface')
+args = opt.parse_args()
+
+# Search first for user conf file then system file
+CONFNAME = f'{opt.prog}.conf'
+USERDIR = os.getenv('XDG_CONFIG_HOME', os.path.expanduser('~/.config'))
+CONFDIRS = (USERDIR, '/etc')
+
+if args.interface and not args.monitor:
+    opt.error('Can only specify "--interface" with "--monitor"')
+
+class INTERFACE:
+    'Class to wrap each configured interface'
+    def __init__(self, bus, busname, interface):
+        'Constructor'
+        self.busname = busname
+        self.interface = interface
+        self.values = defaultdict(list)
+        self.active = False
+
+        bus.add_signal_receiver(self.handler, dbus_interface=interface,
+                member_keyword='member')
+
+    def add_values(self, member, values, value_index):
+        'Add values to this interface for this member'
+        valuemap = {str(k): v for k, v in values.items()}
+        if not valuemap or not any(valuemap.values()):
+            return False
+
+        self.values[member].append((value_index, valuemap))
+        if args.verbose:
+            num = len(self.values)
+            count = len(valuemap)
+            print(f'Watching {self.busname} {self.interface} {member} '
+                    f'({num}): {count} values')
+
+        return True
+
+    def handler(self, *hargs, member=None):
+        'Callback function called for each message on this interface'
+        valuesets = self.values.get(member)
+        if not valuesets:
+            return
+
+        if args.verbose:
+            print(f'{self.busname} {self.interface} {member}:', *hargs)
+
+        for value_index, values in valuesets:
+            if value_index >= len(hargs):
+                maxv = len(hargs) - 1
+                print(f'{self.busname} {self.interface} {member}: '
+                        f'index {value_index} out of range (>{maxv})',
+                        file=sys.stderr)
+                return
+
+            cmd = values.get(str(hargs[value_index]))
+            if cmd:
+                subprocess.run(cmd, shell=True, universal_newlines=True)
+
+def getbus(busname):
+    'Return DBus bus for given name'
+    if busname not in busses:
+        sys.exit(f'Invalid bus "{busname}"')
+
+    bus = busses[busname]
+    if not bus:
+        bus = busses[busname] = busfuncs[busname]()
+
+    return bus
+
+def get(context, conf, attr, default=None):
+    'Wrapper to get attribute value or report error'
+    val = conf.get(attr, default)
+    if val is None:
+        sys.exit(f'"{attr}" not defined in {context}')
+    return val
+
+def monitor_conf():
+    'Main processing'
+    # Search for configuration file. Use file given as command line
+    # argument, else look for file in search dir order.
+    if args.conffile:
+        confpath = Path(args.conffile)
+        if not confpath.exists():
+            sys.exit(f'Conf file "{args.conffile}" does not exist.')
+    else:
+        for confdir in CONFDIRS:
+            confpath = Path(confdir, CONFNAME)
+            if confpath.exists():
+                break
+        else:
+            dirs = ' or '.join(CONFDIRS)
+            sys.exit(f'No file {CONFNAME} in {dirs}.')
+
+    yaml = YAML(typ='safe')
+    conf = yaml.load(confpath)
+
+    # Iterate over configuration file and record interfaces to watch ..
+    ifaces = {k: {} for k in busses}
+    active_count = 0
+    for num, trig in enumerate((conf.get('triggers') or []), 1):
+        name = f'trigger {num}'
+        busname = get(name, trig, 'bus')
+        bus = getbus(busname)
+        interface = get(name, trig, 'interface')
+        member = get(name, trig, 'member')
+        value_index = get(name, trig, 'value_index', 0)
+        values = get(name, trig, 'values')
+
+        if value_index < 0:
+            sys.exit(f'{name} value_index "{value_index}" must be >0')
+
+        iface = ifaces[busname].get(interface)
+        if not iface:
+            iface = ifaces[busname][interface] = INTERFACE(bus, busname,
+                    interface)
+
+        if iface.add_values(member, values, value_index):
+            active_count += 1
+
+    if active_count == 0:
+        sys.exit('No active triggers configured')
+
+def handler(busname, *hargs, interface=None, member=None):
+    'Callback for monitor function'
+    print(f'{busname} {interface} {member}:', *hargs)
+
+def monitor_all(busname):
+    'Diagnostic function to report all bus messages'
+    if args.verbose:
+        print(f'Watching all interfaces on {busname} bus')
+    bus = getbus(busname)
+    cb = partial(handler, busname)
+    bus.add_signal_receiver(cb, dbus_interface=args.interface,
+            interface_keyword='interface', member_keyword='member')
+
+DBusGMainLoop(set_as_default=True)
+
+if args.monitor:
+    # Monitor only, ignore config and just output diag messages
+    busname = args.monitor.lower()
+    if busname in ('all', 'both'):
+        for busname in busses:
+            monitor_all(busname)
+    else:
+        monitor_all(busname)
+else:
+    monitor_conf()
+
+GLib.MainLoop().run()
