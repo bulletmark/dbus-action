@@ -46,9 +46,10 @@ interface` to further limit output to a specific interface.
 Then perform the action you would like to intercept and capture the
 D-Bus message. In your `~/.config/dbus-action.conf`, configure the bus,
 interface, member, and response values to commands which you would like
-to trigger. Note that the response is a list of values so you must set
-`value_index` in your configuration to the index of the value in the
-returned list you want to compare, it defaults to 0.
+to trigger. Note that the response is a list of values (although often
+only list of 1) so you must set `value_index` in your configuration to
+the index of the value in the returned list you want to compare, it
+defaults to 0, i.e. the first value returned.
 
 ### STARTING AND STOPPING
 
