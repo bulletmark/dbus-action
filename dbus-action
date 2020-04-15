@@ -42,13 +42,11 @@ class INTERFACE:
     'Class to wrap each configured interface'
     def __init__(self, bus, busname, interface):
         'Constructor'
+        self.bus = bus
         self.busname = busname
         self.interface = interface
         self.values = defaultdict(list)
         self.active = False
-
-        bus.add_signal_receiver(self.handler, dbus_interface=interface,
-                member_keyword='member')
 
     def add_values(self, member, values, value_index):
         'Add values to this interface for this member'
@@ -57,6 +55,13 @@ class INTERFACE:
             return False
 
         self.values[member].append((value_index, valuemap))
+
+        # We have something to watch so set the signal receiver
+        if not self.active:
+            self.bus.add_signal_receiver(self.handler,
+                    dbus_interface=self.interface, member_keyword='member')
+            self.active = True
+
         if args.verbose:
             num = len(self.values)
             count = len(valuemap)

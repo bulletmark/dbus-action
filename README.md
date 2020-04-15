@@ -48,7 +48,7 @@ D-Bus message. In your `~/.config/dbus-action.conf`, configure the bus,
 interface, member, and response values to commands which you would like
 to trigger. Note that the response is a list of values (although often
 only a list of 1) so you must set `value_index` in your configuration to
-the index of the value in the returned list you want to compare, it
+the index of the value in the returned list you want to compare. It
 defaults to 0, i.e. the first value returned.
 
 ### STARTING AND STOPPING
