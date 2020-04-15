@@ -13,10 +13,9 @@ from dbus.mainloop.glib import DBusGMainLoop
 from gi.repository import GLib
 from ruamel.yaml import YAML
 
-busses = {'session': None, 'system': None}
-busdbus = [dbus.SessionBus, dbus.SystemBus]
-busfuncs = {k: f for k, f in zip(busses, busdbus)}
-busnames = ','.join(busses)
+busnames = ('session', 'system')
+busdbus = (dbus.SessionBus, dbus.SystemBus)
+busstr = ','.join(busnames)
 
 # Set up command line arguments
 opt = argparse.ArgumentParser(description=__doc__)
@@ -25,7 +24,7 @@ opt.add_argument('-c', '--conffile',
 opt.add_argument('-v', '--verbose', action='store_true',
         help='verbose output')
 opt.add_argument('-m', '--monitor',
-        help=f'just monitor given bus, or "all" busses ({busnames})')
+        help=f'just monitor given bus, or "all" busses ({busstr})')
 opt.add_argument('-i', '--interface',
         help=f'limit monitor output to specific interface')
 args = opt.parse_args()
@@ -91,10 +90,39 @@ class INTERFACE:
             if cmd:
                 subprocess.run(cmd, shell=True, universal_newlines=True)
 
-def getbus(busname):
+def getconf():
+    '''
+    Search for configuration file. Use file given as command line
+    argument, else look for file in search dir order.
+    '''
+    if args.conffile:
+        confpath = Path(args.conffile)
+        if not confpath.exists():
+            sys.exit(f'Conf file "{args.conffile}" does not exist.')
+    else:
+        for confdir in CONFDIRS:
+            confpath = Path(confdir, CONFNAME)
+            if confpath.exists():
+                break
+        else:
+            dirs = ' or '.join(CONFDIRS)
+            sys.exit(f'No file {CONFNAME} in {dirs}.')
+
+    # Read the data and return it
+    yaml = YAML(typ='safe')
+    return yaml.load(confpath)
+
+# Data structures for getbus()
+busses = {b: None for b in busnames}
+busfuncs = {b: f for b, f in zip(busnames, busdbus)}
+
+def getbus(busname, context=None):
     'Return DBus bus for given name'
     if busname not in busses:
-        sys.exit(f'Invalid bus "{busname}"')
+        errmsg = f'Invalid bus "{busname}"'
+        if context:
+            errmsg += f' in {context}'
+        sys.exit(errmsg)
 
     bus = busses[busname]
     if not bus:
@@ -109,33 +137,18 @@ def get(context, conf, attr, default=None):
         sys.exit(f'"{attr}" not defined in {context}')
     return val
 
-def monitor_conf():
+def monitor():
     'Main processing'
-    # Search for configuration file. Use file given as command line
-    # argument, else look for file in search dir order.
-    if args.conffile:
-        confpath = Path(args.conffile)
-        if not confpath.exists():
-            sys.exit(f'Conf file "{args.conffile}" does not exist.')
-    else:
-        for confdir in CONFDIRS:
-            confpath = Path(confdir, CONFNAME)
-            if confpath.exists():
-                break
-        else:
-            dirs = ' or '.join(CONFDIRS)
-            sys.exit(f'No file {CONFNAME} in {dirs}.')
-
-    yaml = YAML(typ='safe')
-    conf = yaml.load(confpath)
+    # Read configuration file
+    conf = getconf()
 
     # Iterate over configuration file and record interfaces to watch ..
-    ifaces = {k: {} for k in busses}
+    ifaces = {b: {} for b in busnames}
     active_count = 0
     for num, trig in enumerate((conf.get('triggers') or []), 1):
         name = f'trigger {num}'
         busname = get(name, trig, 'bus')
-        bus = getbus(busname)
+        bus = getbus(busname, name)
         interface = get(name, trig, 'interface')
         member = get(name, trig, 'member')
         value_index = get(name, trig, 'value_index', 0)
@@ -174,11 +187,11 @@ if args.monitor:
     # Monitor only, ignore config and just output diag messages
     busname = args.monitor.lower()
     if busname in ('all', 'both'):
-        for busname in busses:
+        for busname in busnames:
             monitor_all(busname)
     else:
         monitor_all(busname)
 else:
-    monitor_conf()
+    monitor()
 
 GLib.MainLoop().run()
