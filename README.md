@@ -1,9 +1,12 @@
 ### DBUS-ACTION
 
-[dbus-action][REPO] is a program which listens to D-Bus and
-actions configured commands on specified messages. A message is
-specifying using bus + interface + member + response value, and
-this can be mapped to trigger any arbitary command.
+[dbus-action][REPO] is a program which listens to D-Bus and actions
+configured commands on specified messages. A message is specifying using
+bus + interface + member + response value, and this can be mapped to
+trigger any arbitrary command. You can choose to [automatically
+start](https://specifications.freedesktop.org/autostart-spec/autostart-spec-latest.html)
+dbus-action in your desktop environment to action commands in response
+to events in that environment.
 
 The latest version and documentation is available at
 https://github.com/bulletmark/dbus-action.
