@@ -28,16 +28,18 @@ Install this software:
 ### CONFIGURATION
 
 The default configuration file is in `/etc/dbus-action.conf`. You will
-want to create your own custom actions so copy that file to
-`~/.config/dbus-action.conf` and edit it. Options and some examples
-are described in that file.
+want to create your own custom triggers and actions so copy that file to
+`~/.config/dbus-action.conf` and edit it. Options and an example are
+described in comments within that file. The example shows how to action
+a command when your machine suspends, and then another command when it
+resumes from suspend.
 
-Most likely you will first need to determine the interface, member, and
-responses you want to trigger on. To help with this, you can run
-`dbus-action` in monitor mode to view all messages. Run:
-```
-dbus-action -m all
-```
+For other custom actions, most likely you will first need to determine
+the interface, member, and responses you want to trigger on. To help
+with this, you can run `dbus-action` in monitor mode to view all
+messages. Run:
+
+    dbus-action -m all
 
 Note, instead of `-m all`, you can choose `-m session` or `-m system` to
 limit listening to those specific buses only. You can also add `-i
