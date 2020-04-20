@@ -90,15 +90,15 @@ class INTERFACE:
             if cmd:
                 subprocess.run(cmd, shell=True, universal_newlines=True)
 
-def getconf():
+def getconf(conffile=None):
     '''
-    Search for configuration file. Use file given as command line
-    argument, else look for file in search dir order.
+    Search for configuration file. Use given file, or else look for file
+    in search dir order.
     '''
-    if args.conffile:
-        confpath = Path(args.conffile)
+    if conffile:
+        confpath = Path(conffile)
         if not confpath.exists():
-            sys.exit(f'Conf file "{args.conffile}" does not exist.')
+            sys.exit(f'Conf file "{conffile}" does not exist.')
     else:
         for confdir in CONFDIRS:
             confpath = Path(confdir, CONFNAME)
@@ -109,8 +109,7 @@ def getconf():
             sys.exit(f'No file {CONFNAME} in {dirs}.')
 
     # Read the data and return it
-    yaml = YAML(typ='safe')
-    return yaml.load(confpath)
+    return YAML(typ='safe').load(confpath)
 
 # Data structures for getbus()
 busses = {b: None for b in busnames}
@@ -140,7 +139,7 @@ def get(context, conf, attr, default=None):
 def monitor():
     'Main processing'
     # Read configuration file
-    conf = getconf()
+    conf = getconf(args.conffile)
 
     # Iterate over configuration file and record interfaces to watch ..
     ifaces = {b: {} for b in busnames}
