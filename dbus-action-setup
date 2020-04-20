@@ -98,9 +98,9 @@ auto_start() {
     fi
 
     if ! cmp -s $APPDIR/$NAME.desktop $AUTDIR/$NAME.desktop; then
-	mkdir -p $AUTDIR
-	cp $APPDIR/$NAME.desktop $AUTDIR
-	echo "installed or updated $AUTDIR/$NAME.desktop"
+	if mkdir -p $AUTDIR && cp $APPDIR/$NAME.desktop $AUTDIR; then
+	    echo "installed or updated $AUTDIR/$NAME.desktop"
+	fi
     fi
     return 0
 }
