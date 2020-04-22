@@ -193,4 +193,7 @@ if args.monitor:
 else:
     monitor()
 
-GLib.MainLoop().run()
+try:
+    GLib.MainLoop().run()
+except KeyboardInterrupt:
+    pass
