@@ -40,7 +40,8 @@ resumes from suspend.
 For other custom actions, most likely you will first need to determine
 the interface, member, and responses you want to trigger on. To help
 with this, you can run `dbus-action` in monitor mode to view all
-messages. Run as your normal user (DO NOT use root/sudo):
+messages. Run the following as your normal user in your normal session
+(DO NOT use root/sudo):
 
     dbus-action -m all
 
