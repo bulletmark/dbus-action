@@ -106,6 +106,9 @@ def getconf(conffile=None):
             dirs = ' or '.join(CONFDIRS)
             sys.exit(f'No file {CONFNAME} in {dirs}.')
 
+    if args.verbose:
+        print(f'Reading configuration from {confpath}')
+
     # Read the data and return it
     return YAML(typ='safe').load(confpath)
 
