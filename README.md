@@ -59,36 +59,62 @@ defaults to 0, i.e. the first value returned.
 
 ### STARTING AND STOPPING
 
-Start the application immediately in the background using the
-command line utility:
+You must choose between starting the application as a [systemd user
+service](https://wiki.archlinux.org/index.php/Systemd/User), or as a
+[desktop
+application](https://specifications.freedesktop.org/autostart-spec/autostart-spec-latest.html)
+(with an XDG compliant DE such as GNOME and KDE). The systemd user
+service provides more robust management and better logging than the
+desktop so is the preferred choice. Choose one of the two following
+options:
 
-    dbus-action-setup start
+1. To set up the application as a [systemd user
+   service](https://wiki.archlinux.org/index.php/Systemd/User):
 
-You can stop the background app with:
+````
+dbus-action-setup service
+````
 
-    dbus-action-setup stop
+2. Or instead, to set up the application using your
+   [DE](https://specifications.freedesktop.org/autostart-spec/autostart-spec-latest.html):
 
-You can enable the app to start automatically in the background when you
-log in (on an XDG compliant DE such as GNOME and KDE) with:
+````
+dbus-action-setup desktop
+````
+
+After *choosing one of the above*, you can use then run the following commands:
+
+Enable the app to start automatically in the background when you
+log in with:
 
     dbus-action-setup autostart
 
-You can disable the app from starting automatically with:
+Disable the app from starting automatically with:
 
     dbus-action-setup autostop
 
-You can restart the app or reload the configuration file with:
+Start the app immediately in the background:
+
+    dbus-action-setup start
+
+Stop the background app immediately with:
+
+    dbus-action-setup stop
+
+Restart the app, e.g. to reload the configuration file, with:
 
     dbus-action-setup restart
 
-You can check the status of the app with:
+Check the status of the app with:
 
     dbus-action-setup status
 
-Note on some uncommon systems `dbus-action-setup start` may fail to
-start the application returning you a message _Don't know how to invoke
-dbus-action.desktop_. If you get this error message, install the dex
-package, preferably from your system packages repository, and try again.
+Note if you are starting using the DE option and you are using some
+uncommon systems then `dbus-action-setup start` may fail
+to start the application returning you a message _Don't know how to
+invoke dbus-action.desktop_. If you get this error message,
+install the dex package, preferably from your system packages
+repository, and try again.
 
 ### UPGRADE
 

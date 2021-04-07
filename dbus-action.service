@@ -1,0 +1,12 @@
+[Unit]
+Description=Execute actions based on DBUS messages
+Documentation=https://github.com/bulletmark/dbus-action
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/dbus-action
+
+[Install]
+WantedBy=graphical-session.target

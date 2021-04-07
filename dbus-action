@@ -13,9 +13,7 @@ from dbus.mainloop.glib import DBusGMainLoop
 from gi.repository import GLib
 from ruamel.yaml import YAML
 
-busnames = ('session', 'system')
-busdbus = (dbus.SessionBus, dbus.SystemBus)
-busstr = ','.join(busnames)
+buses = {'session': dbus.SessionBus, 'system': dbus.SystemBus}
 
 # Set up command line arguments
 opt = argparse.ArgumentParser(description=__doc__)
@@ -24,9 +22,9 @@ opt.add_argument('-c', '--conffile',
 opt.add_argument('-v', '--verbose', action='store_true',
         help='verbose output')
 opt.add_argument('-m', '--monitor',
-        help=f'just monitor given bus, or "all" busses ({busstr})')
+        help=f'just monitor given bus, or "all" buses ({",".join(buses)})')
 opt.add_argument('-i', '--interface',
-        help=f'limit monitor output to specific interface')
+        help='limit monitor output to specific interface')
 args = opt.parse_args()
 
 # Search first for user conf file then system file
@@ -112,20 +110,19 @@ def getconf(conffile=None):
     return YAML(typ='safe').load(confpath)
 
 # Data structures for getbus()
-busses = {b: None for b in busnames}
-busfuncs = {b: f for b, f in zip(busnames, busdbus)}
+buses_inuse = {b: None for b in buses}
 
 def getbus(busname, context=None):
     'Return DBus bus for given name'
-    if busname not in busses:
+    if busname not in buses_inuse:
         errmsg = f'Invalid bus "{busname}"'
         if context:
             errmsg += f' in {context}'
         sys.exit(errmsg + '.')
 
-    bus = busses[busname]
+    bus = buses_inuse[busname]
     if not bus:
-        bus = busses[busname] = busfuncs[busname]()
+        bus = buses_inuse[busname] = buses[busname]()
 
     return bus
 
@@ -142,7 +139,7 @@ def monitor():
     conf = getconf(args.conffile)
 
     # Iterate over configuration file and record interfaces to watch ..
-    ifaces = {b: {} for b in busnames}
+    ifaces = {b: {} for b in buses}
     active_count = 0
     for num, trig in enumerate((conf.get('triggers') or []), 1):
         name = f'trigger {num}'
@@ -174,7 +171,9 @@ def handler(busname, *hargs, interface=None, member=None):
 def monitor_all(busname):
     'Diagnostic function to report all bus messages'
     if args.verbose:
-        print(f'Watching all interfaces on {busname} bus')
+        iface = f'{args.interface} interface' if args.interface \
+                else 'all interfaces'
+        print(f'Watching {iface} on {busname} bus')
     bus = getbus(busname)
     cb = partial(handler, busname)
     bus.add_signal_receiver(cb, dbus_interface=args.interface,
@@ -186,7 +185,7 @@ if args.monitor:
     # Monitor only, ignore config and just output diag messages
     busname = args.monitor.lower()
     if busname in ('all', 'both'):
-        for busname in busnames:
+        for busname in buses:
             monitor_all(busname)
     else:
         monitor_all(busname)
