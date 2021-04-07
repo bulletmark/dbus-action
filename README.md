@@ -142,7 +142,7 @@ optional arguments:
                         alternative configuration file
   -v, --verbose         verbose output
   -m MONITOR, --monitor MONITOR
-                        just monitor given bus, or "all" busses
+                        just monitor given bus, or "all" buses
                         (session,system)
   -i INTERFACE, --interface INTERFACE
                         limit monitor output to specific interface
