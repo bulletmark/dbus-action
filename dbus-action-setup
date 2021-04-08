@@ -150,13 +150,20 @@ user_action() {
 	if [[ $svc_running -eq 1 ]]; then
 	    systemctl --user stop $NAME.service
 	    echo "$NAME stopped as a user service."
-	fi
-
-	for prog in $NAME; do
-	    if pkill -u $USER -f "$prog\$|$prog " &>/dev/null; then
-		echo "$prog stopped for desktop."
+	else
+	    local pidfile=/tmp/$NAME-$USER.lock
+	    if [[ -f $pidfile ]]; then
+		local killed=0
+		while read pid; do
+		    if kill $pid &>/dev/null; then
+			killed=1
+		    fi
+		done <$pidfile
+		if [[ $killed -ne 0 ]]; then
+		    echo "$NAME stopped for desktop."
+		fi
 	    fi
-	done
+	fi
     elif [[ $cmd == autostart ]]; then
 	if [[ -f $SVCFLG ]]; then
 	    if [[ $has_sysd -eq 0 ]]; then
@@ -196,12 +203,10 @@ user_action() {
 
 	if [[ $svc_running -eq 1 ]]; then
 	    echo "$NAME is currently running as a user service."
+	elif ps "$(head -1 /tmp/$NAME-$USER.lock 2>/dev/null)" &>/dev/null; then
+	    echo "$NAME is currently running as a desktop application."
 	else
-	    if pgrep -u $USER -f "$NAME\$|$NAME " &>/dev/null; then
-		echo "$NAME is currently running as a desktop application."
-	    else
-		echo "$NAME is not currently running."
-	    fi
+	    echo "$NAME is not currently running."
 	fi
 
 	if [[ $svc_enabled -eq 1 ]]; then

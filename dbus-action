@@ -2,6 +2,8 @@
 'Watch D-Bus to action configured commands on specific events.'
 import os
 import sys
+import fcntl
+import getpass
 import argparse
 import subprocess
 from functools import partial
@@ -31,6 +33,17 @@ args = opt.parse_args()
 CONFNAME = f'{opt.prog}.conf'
 USERDIR = os.getenv('XDG_CONFIG_HOME', os.path.expanduser('~/.config'))
 CONFDIRS = (USERDIR, '/etc')
+
+def open_lock(*args):
+    'Create a lock based on given list of arguments'
+    # We use exclusive assess to a file for this
+    fp = Path('/tmp', '-'.join(args) + '.lock').open('w')
+    try:
+        fcntl.lockf(fp, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except IOError:
+        return None
+
+    return fp
 
 if args.interface and not args.monitor:
     opt.error('Can only specify "--interface" with "--monitor"')
@@ -136,7 +149,7 @@ def get(context, conf, attr, default=None):
         sys.exit(f'"{attr}" not defined in {context}.')
     return val
 
-def monitor():
+def set_actions():
     'Main processing'
     # Read configuration file
     conf = getconf(args.conffile)
@@ -193,7 +206,18 @@ if args.monitor:
     else:
         monitor_all(busname)
 else:
-    monitor()
+    # Make sure only one instance running for current user
+    user = getpass.getuser()
+    proglock = open_lock(opt.prog, user)
+    if not proglock:
+        sys.exit('{} is already running for {}, terminating ..'.format(
+            opt.prog, user))
+
+    # Store PID for potential kill
+    proglock.write('{}\n'.format(os.getpid()))
+    proglock.flush()
+
+    set_actions()
 
 try:
     GLib.MainLoop().run()
