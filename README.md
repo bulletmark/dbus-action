@@ -1,4 +1,5 @@
 ### DBUS-ACTION
+[![AUR](https://img.shields.io/aur/version/dbus-action)](https://aur.archlinux.org/packages/dbus-action/)
 
 [dbus-action][REPO] is a program which listens to D-Bus and actions
 configured commands on specified messages. A message is specifying using
