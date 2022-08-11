@@ -210,11 +210,10 @@ else:
     user = getpass.getuser()
     proglock = open_lock(opt.prog, user)
     if not proglock:
-        sys.exit('{} is already running for {}, terminating ..'.format(
-            opt.prog, user))
+        sys.exit(f'{opt.prog} is already running for {user}, terminating ..')
 
     # Store PID for potential kill
-    proglock.write('{}\n'.format(os.getpid()))
+    proglock.write(f'{os.getpid()}\n')
     proglock.flush()
 
     set_actions()
