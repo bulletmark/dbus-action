@@ -24,7 +24,7 @@ uninstall:
 	@./dbus-action-setup -d "$(DESTDIR)" uninstall
 
 check:
-	flake8 dbus-action
+	ruff check dbus-action
 	shellcheck $(SHELLCHECK_OPTS) dbus-action-setup
 	vermin -i -q -t 3.6 --no-tips dbus-action
 
